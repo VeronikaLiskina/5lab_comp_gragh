@@ -17,22 +17,24 @@ struct Vertex {
 
 class Mesh {
 public:
-    vector <Vertex>       vertices;
-    vector <unsigned int> indices;
-    unsigned int VAO;
+    vector<Vertex> vertices;
+    vector<unsigned int> indices;
+    unsigned int VAO, VBO, EBO;
 
     Mesh(vector<Vertex> vertices, vector<unsigned int> indices)
-    {
-
-        this->vertices = vertices;
-        this->indices = indices;
+        : vertices(vertices), indices(indices), VAO(0), VBO(0), EBO(0) {
         setupMesh();
     }
 
-    void Draw(Shader& shader)
-    {
+    ~Mesh() {
+        if (VBO != 0) glDeleteBuffers(1, &VBO);
+        if (EBO != 0) glDeleteBuffers(1, &EBO);
+        if (VAO != 0) glDeleteVertexArrays(1, &VAO);
+    }
+
+    void Draw(Shader& shader) {
         if (VAO == 0) {
-            std::cerr << "Uninit Mesh" << std::endl;
+            std::cerr << "Error: Mesh not initialized properly" << std::endl;
             return;
         }
         glBindVertexArray(VAO);
@@ -41,23 +43,31 @@ public:
     }
 
 private:
-    unsigned int VBO, EBO;
-
-    void setupMesh()
-    {
+    void setupMesh() {
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         glGenBuffers(1, &EBO);
 
         glBindVertexArray(VAO);
+
+        // Vertex buffer
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+        // Index buffer
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+        // Vertex attributes
+        // Position
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+
+        // Normal
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
+
+        glBindVertexArray(0);
     }
 };
-#endif 
+#endif
